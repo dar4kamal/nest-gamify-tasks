@@ -9,4 +9,15 @@ export class NotionService {
       auth: process.env.NOTION_TOKEN,
     });
   }
+
+  async query(DB_ID: string, filter: any = null, sort: any[] = []) {
+    let queryOptions = {
+      database_id: DB_ID,
+    };
+    if (filter) queryOptions['filter'] = filter;
+    if (sort.length > 0) queryOptions['sort'] = sort;
+
+    const { results } = await this.notion.databases.query(queryOptions);
+    return results;
+  }
 }
