@@ -9,7 +9,11 @@ import {
 } from 'src/utils/getData';
 import { User } from './users.model';
 import { NotionService } from 'src/notion/notion.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +24,27 @@ export class UsersService {
   };
   private findUser = (user: any, email: string, password: string) =>
     getEmail(user.email) === email && getText(user.password) === password;
+
+  private getUserDetails = async (
+    email: string,
+    password: string,
+    isNew: boolean = false,
+  ) => {
+    const results = await this.getAllUsers();
+    const usersData = results.map((user) => user.properties);
+
+    const selectedUser: User = usersData.find((user) =>
+      this.findUser(user, email, password),
+    );
+    const selectedUserIndex = usersData.findIndex((user) =>
+      this.findUser(user, email, password),
+    );
+
+    if (isNew && selectedUser)
+      throw new BadRequestException('User already exists ...');
+    if (!selectedUser) throw new NotFoundException('User Not Found ...');
+    return { selectedUser, userId: results[selectedUserIndex].id };
+  };
 
   async getAll() {
     const results = await this.getAllUsers();
@@ -63,20 +88,10 @@ export class UsersService {
   }
 
   async login(email: string, password: string) {
-    const results = await this.getAllUsers();
-    const usersData = results.map((user) => user.properties);
-
-    const selectedUser: User = usersData.find((user) =>
-      this.findUser(user, email, password),
-    );
-    const selectedUserIndex = usersData.findIndex((user) =>
-      this.findUser(user, email, password),
-    );
-
-    if (!selectedUser) throw new NotFoundException('User Not Found ...');
+    const { selectedUser, userId } = await this.getUserDetails(email, password);
 
     const output = {
-      id: results[selectedUserIndex].id,
+      id: userId,
       name: getTitle(selectedUser.name),
       goals: selectedUser.goals.relation.map((goal, index) => {
         return {
@@ -113,5 +128,9 @@ export class UsersService {
       totalPoints: getNumber(selectedUser.totalPoints),
     };
     return output;
+  }
+
+  async register(name: string, email: string, password: string) {
+    const { selectedUser, userId } = await this.getUserDetails(email, password);
   }
 }
