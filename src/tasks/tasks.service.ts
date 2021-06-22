@@ -6,6 +6,13 @@ import {
   getRollUpItem,
 } from 'src/utils/getData';
 import {
+  addDate,
+  addTitle,
+  addNumber,
+  addBoolean,
+  addRelation,
+} from 'src/utils/addData';
+import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
@@ -14,7 +21,6 @@ import { Task } from './tasks.model';
 import { Validate } from '../validation/tasks';
 import parseErrors from 'src/utils/parseErrors';
 import { NotionService } from 'src/notion/notion.service';
-import { addDate, addNumber, addRelation, addTitle } from 'src/utils/addData';
 
 @Injectable()
 export class TasksService {
@@ -103,6 +109,50 @@ export class TasksService {
       points: getNumber(task.points),
       done: getBoolean(task.done),
       createdAt: getDate(task.createdAt),
+    };
+    return output;
+  }
+
+  async updateTask(
+    taskId: string,
+    name: string,
+    points: number,
+    userId: string,
+    goalId: string,
+    done: boolean,
+  ) {
+    const { error } = Validate(
+      { name, points, userId, goalId, done },
+      'update',
+    );
+    if (error) throw new BadRequestException({ errors: parseErrors(error) });
+
+    await this.notionService.checkPageExists(taskId);
+
+    const props = {
+      name: name && addTitle(name),
+      points: points && addNumber(points),
+      user: userId && addRelation(userId),
+      goals: goalId && addRelation(goalId),
+      done: done && addBoolean(done),
+      doneAt: done && addDate(new Date().toISOString()),
+    };
+    const results = await this.notionService.update(taskId, props);
+
+    const newTask: Task = results.properties;
+
+    const output = {
+      name: getTitle(newTask.name),
+      goals: newTask.goals.relation.map((goal, index) => {
+        return {
+          id: goal.id,
+          name: getTitle(getRollUpItem(newTask, 'goalsName', index)),
+        };
+      }),
+      points: getNumber(newTask.points),
+      done: getBoolean(newTask.done),
+      createdAt: getDate(newTask.createdAt),
+      doneAt: getDate(newTask.doneAt),
     };
     return output;
   }
