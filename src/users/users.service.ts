@@ -14,6 +14,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { addEmail, addNumber, addText, addTitle } from 'src/utils/addData';
 
 @Injectable()
 export class UsersService {
@@ -25,14 +26,9 @@ export class UsersService {
   private findUser = (user: any, email: string, password: string) =>
     getEmail(user.email) === email && getText(user.password) === password;
 
-  private getUserDetails = async (
-    email: string,
-    password: string,
-    isNew: boolean = false,
-  ) => {
+  private checkIfUserExisted = async (email: string, password: string) => {
     const results = await this.getAllUsers();
     const usersData = results.map((user) => user.properties);
-
     const selectedUser: User = usersData.find((user) =>
       this.findUser(user, email, password),
     );
@@ -40,10 +36,15 @@ export class UsersService {
       this.findUser(user, email, password),
     );
 
-    if (isNew && selectedUser)
-      throw new BadRequestException('User already exists ...');
-    if (!selectedUser) throw new NotFoundException('User Not Found ...');
-    return { selectedUser, userId: results[selectedUserIndex].id };
+    if (selectedUser)
+      return { selectedUser, userId: results[selectedUserIndex].id };
+    return null;
+  };
+  private getUserDetails = async (email: string, password: string) => {
+    const checkIfUserExisted = await this.checkIfUserExisted(email, password);
+    if (!checkIfUserExisted) throw new NotFoundException('User Not Found ...');
+    const { selectedUser, userId } = checkIfUserExisted;
+    return { selectedUser, userId };
   };
 
   async getAll() {
@@ -131,6 +132,32 @@ export class UsersService {
   }
 
   async register(name: string, email: string, password: string) {
-    const { selectedUser, userId } = await this.getUserDetails(email, password);
+    const checkIfUserExisted = await this.checkIfUserExisted(email, password);
+
+    if (checkIfUserExisted?.selectedUser)
+      throw new BadRequestException('User already exists ...');
+
+    const props = {
+      name: addTitle(name),
+      email: addEmail(email),
+      password: addText(password),
+      totalPoints: addNumber(0),
+    };
+    const results: any = await this.notionService.create(
+      process.env.USERS_DB_ID,
+      props,
+    );
+
+    const user = results.properties;
+
+    const output = {
+      name: getTitle(user.name),
+      goals: [],
+      tasks: [],
+      rewards: [],
+      totalPoints: getNumber(user.totalPoints),
+    };
+
+    return output;
   }
 }

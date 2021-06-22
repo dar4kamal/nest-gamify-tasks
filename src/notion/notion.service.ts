@@ -20,4 +20,12 @@ export class NotionService {
     const { results } = await this.notion.databases.query(queryOptions);
     return results;
   }
+
+  async create(DB_ID: string, props: any) {
+    const results = await this.notion.pages.create({
+      parent: { database_id: DB_ID },
+      properties: props,
+    });
+    return results;
+  }
 }
