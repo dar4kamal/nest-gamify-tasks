@@ -5,7 +5,7 @@ export default (error: any): any[] => {
     return {
       input: error.path[0],
       value: error.context.value,
-      message: error.message,
+      message: error.message.replace(/"/g, ''),
     };
   });
   return errors;
