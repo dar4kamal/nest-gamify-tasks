@@ -5,29 +5,30 @@ import {
   Body,
   Query,
   Param,
+  Delete,
   Headers,
   Controller,
-  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import handleQuery from 'src/utils/handleQuery';
-import parseErrors from 'src/utils/parseErrors';
 import { NotionService } from 'src/notion/notion.service';
 
 @Controller('tasks')
 export class TasksController {
+  private readonly dbId: string = process.env.TASKS_DB_ID;
   constructor(
     private readonly taskService: TasksService,
     private readonly notionService: NotionService,
   ) {}
 
-  @Get('/')
-  async getAll(@Headers('x-user-id') userId: string, @Query() query) {
+  @Get()
+  async getAll(@Headers('x-user-id') userId: string, @Query() query: any) {
     const { sortParams, filters } = handleQuery(query);
     return await this.taskService.getAll(userId, filters, sortParams);
   }
 
-  @Post('/')
+  @Post()
   async add(
     @Body('name') name: string,
     @Body('points') points: number,
@@ -46,8 +47,7 @@ export class TasksController {
     @Body('goalId') goalId: string,
     @Body('done') done: boolean,
   ) {
-    const { error } = this.notionService.checkId(taskId, 'taskId');
-    if (error) throw new BadRequestException({ errors: parseErrors(error) });
+    this.notionService.checkId(taskId, 'taskId');
 
     return await this.taskService.updateTask(
       taskId,
@@ -57,5 +57,17 @@ export class TasksController {
       goalId,
       done,
     );
+  }
+
+  @Delete(':taskId')
+  async remove(@Param('taskId') taskId: string) {
+    try {
+      this.notionService.checkId(taskId, 'taskId');
+      await this.notionService.checkPageExists(taskId, false);
+      await this.notionService.checkParent(taskId, this.dbId);
+      return await this.taskService.removeTask(taskId);
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
   }
 }

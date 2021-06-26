@@ -1,10 +1,11 @@
 import { string, object } from 'joi';
 import { Client } from '@notionhq/client';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import parseErrors from 'src/utils/parseErrors';
+import { Injectable, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class NotionService {
-  public notion: Client;
+  private notion: Client;
   private notionIdRegex: RegExp = new RegExp(
     /^[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{12}$/,
   );
@@ -36,27 +37,41 @@ export class NotionService {
     return results;
   }
 
-  checkId(id: string, name: string) {
+  checkId(id: string, name: string): void {
     const IdSchema = object({
       [`${name}`]: string().pattern(this.notionIdRegex).messages({
         'string.pattern.base':
           'must be in the pattern of xxxxxxxx(8)-xxxx(4)-xxxx(4)-xxxx(4)-xxxxxxxxxxxx(12)',
       }),
     });
-    return IdSchema.validate({ [`${name}`]: id }, { abortEarly: false });
+    const { error } = IdSchema.validate(
+      { [`${name}`]: id },
+      { abortEarly: false },
+    );
+    if (error) throw new BadRequestException({ errors: parseErrors(error) });
   }
 
-  async checkPageExists(page_id: string) {
+  async checkPageExists(page_id: string, returns: boolean = true) {
     try {
-      await this.notion.pages.retrieve({
+      const page: any = await this.notion.pages.retrieve({
         page_id,
       });
+      return returns ? page : true;
     } catch (error) {
-      if (error.code == this.ErrorTypes.OBJECT_NOT_FOUND)
-        throw new NotFoundException({
-          message: 'Page Not Found ...',
-        });
+      if (error.code === this.ErrorTypes.OBJECT_NOT_FOUND) {
+        throw new Error('Page not found ...');
+      }
     }
+  }
+
+  async checkParent(page_id: string, parentId: string) {
+    const page: any = await this.checkPageExists(page_id);
+    const isCorrectParent = page.parent.database_id == parentId;
+    if (!isCorrectParent)
+      throw new BadRequestException({
+        input: 'pageId',
+        message: 'Invalid Id',
+      });
   }
 
   async update(page_id: string, props: any) {

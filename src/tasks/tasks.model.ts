@@ -7,10 +7,10 @@ interface Relation {
 
 export interface Task {
   id?: string;
-  name?: string;
-  goals?: Relation;
-  points?: number;
-  done?: boolean;
-  createdAt?: Date;
   doneAt?: Date;
+  name?: string;
+  done?: boolean;
+  points?: number;
+  createdAt?: Date;
+  goals?: Relation;
 }

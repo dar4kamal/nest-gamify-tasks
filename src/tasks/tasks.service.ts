@@ -18,7 +18,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Task } from './tasks.model';
-import { Validate } from '../validation/tasks';
+import { validate } from '../validation/tasks';
 import parseErrors from 'src/utils/parseErrors';
 import { NotionService } from 'src/notion/notion.service';
 
@@ -81,7 +81,7 @@ export class TasksService {
   }
 
   async addTask(name: string, points: number, userId: string, goalId: string) {
-    const { error } = Validate({ name, points, userId, goalId }, 'new');
+    const { error } = validate({ name, points, userId, goalId }, 'new');
     if (error) throw new BadRequestException({ errors: parseErrors(error) });
     const props = {
       name: addTitle(name),
@@ -121,7 +121,7 @@ export class TasksService {
     goalId: string,
     done: boolean,
   ) {
-    const { error } = Validate(
+    const { error } = validate(
       { name, points, userId, goalId, done },
       'update',
     );
@@ -153,6 +153,30 @@ export class TasksService {
       done: getBoolean(newTask.done),
       createdAt: getDate(newTask.createdAt),
       doneAt: getDate(newTask.doneAt),
+    };
+    return output;
+  }
+
+  async removeTask(taskId: string) {
+    const results = await this.notionService.update(taskId, {
+      removed: addBoolean(true),
+    });
+
+    const task: any = results.properties;
+
+    const output = {
+      name: getTitle(task.name),
+      goals: task.goals.relation.map((goal, index) => {
+        return {
+          id: goal.id,
+          name: getTitle(getRollUpItem(task, 'goalsName', index)),
+        };
+      }),
+      points: getNumber(task.points),
+      done: getBoolean(task.done),
+      createdAt: getDate(task.createdAt),
+      doneAt: getDate(task.doneAt),
+      removed: getBoolean(task.removed),
     };
     return output;
   }

@@ -8,14 +8,12 @@ const nameMessages = getErrorMessages('string', [
   'base',
   'empty',
   'min',
-  'max',
   'required',
 ]);
 const pointsMessages = getErrorMessages('number', [
   'base',
   'empty',
   'min',
-  'max',
   'required',
 ]);
 
@@ -26,33 +24,30 @@ const notionIdMessages = getErrorMessages('string', [
   'required',
 ]);
 
-interface TaskSchema {
+interface RewardSchema {
   name?: string;
   points?: number;
   userId?: string;
-  goalId?: string;
-  done?: boolean;
+  achevied?: boolean;
 }
 
-const newTaskSchema = object({
+const newRewardSchema = object({
   name: string().min(3).max(30).required().messages(nameMessages),
   points: number().min(1).required().messages(pointsMessages),
   userId: string().pattern(idRegex).required().messages(notionIdMessages),
-  goalId: string().pattern(idRegex).required().messages(notionIdMessages),
 });
 
-const updateTaskSchema = object({
+const updateRewardSchema = object({
   name: string().min(3).max(30).messages(nameMessages),
   points: number().min(1).messages(pointsMessages),
   userId: string().pattern(idRegex).messages(notionIdMessages),
-  goalId: string().pattern(idRegex).messages(notionIdMessages),
-  done: boolean(),
+  achevied: boolean(),
 });
 
-const schemaValidate = (schema: any, data: TaskSchema) =>
+const schemaValidate = (schema: any, data: RewardSchema) =>
   schema.validate(data, { abortEarly: false });
 
-export const validate = (data: TaskSchema, mode: string) =>
+export const validate = (data: RewardSchema, mode: string) =>
   mode == 'update'
-    ? schemaValidate(updateTaskSchema, data)
-    : schemaValidate(newTaskSchema, data);
+    ? schemaValidate(updateRewardSchema, data)
+    : schemaValidate(newRewardSchema, data);
