@@ -12,18 +12,15 @@ import {
   addBoolean,
   addRelation,
 } from 'src/utils/addData';
-import {
-  Injectable,
-  BadRequestException,
-  UnauthorizedException,
-} from '@nestjs/common';
 import { Task } from './tasks.model';
 import parseErrors from 'src/utils/parseErrors';
 import { NotionService } from 'src/notion/notion.service';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ValidationService } from 'src/validation/validation.service';
 
 @Injectable()
 export class TasksService {
+  public readonly DB_ID: string = process.env.TASKS_DB_ID;
   constructor(
     private readonly notionService: NotionService,
     private readonly validationService: ValidationService,
@@ -31,16 +28,10 @@ export class TasksService {
     this.validationService = new ValidationService();
     this.validationService.setEngine('Task');
   }
-  private checkUserId(userId: string) {
-    if (!userId)
-      throw new UnauthorizedException({
-        input: 'userId',
-        message: 'Unauthorized access, please provide a user id',
-      });
-  }
+
   private getAllTasks = async (userId: string, filters: any, sorts: any) => {
     return await this.notionService.query(
-      process.env.TASKS_DB_ID,
+      this.DB_ID,
       {
         and: [
           {
@@ -63,7 +54,7 @@ export class TasksService {
   };
 
   async getAll(userId: string, filters: any, sorts: any) {
-    this.checkUserId(userId);
+    this.notionService.checkUserId(userId);
     const results = await this.getAllTasks(userId, filters, sorts);
     const tasks = results.map((task) => task.properties);
 
@@ -100,10 +91,7 @@ export class TasksService {
       createdAt: addDate(new Date().toISOString()),
     };
 
-    const results: any = await this.notionService.create(
-      process.env.TASKS_DB_ID,
-      props,
-    );
+    const results: any = await this.notionService.create(this.DB_ID, props);
     const task: Task = results.properties;
 
     const output = {

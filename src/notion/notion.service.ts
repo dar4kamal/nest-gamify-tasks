@@ -1,7 +1,11 @@
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { string, object } from 'joi';
 import { Client } from '@notionhq/client';
 import parseErrors from 'src/utils/parseErrors';
-import { Injectable, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class NotionService {
@@ -16,6 +20,14 @@ export class NotionService {
     this.notion = new Client({
       auth: process.env.NOTION_TOKEN,
     });
+  }
+
+  checkUserId(userId: string) {
+    if (!userId)
+      throw new UnauthorizedException({
+        input: 'userId',
+        message: 'Unauthorized access, please provide a user id',
+      });
   }
 
   async query(DB_ID: string, filter: any = null, sort: any[] = []) {

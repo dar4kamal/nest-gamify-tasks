@@ -16,7 +16,6 @@ import { NotionService } from 'src/notion/notion.service';
 
 @Controller('tasks')
 export class TasksController {
-  private readonly dbId: string = process.env.TASKS_DB_ID;
   constructor(
     private readonly taskService: TasksService,
     private readonly notionService: NotionService,
@@ -64,7 +63,7 @@ export class TasksController {
     try {
       this.notionService.checkId(taskId, 'taskId');
       await this.notionService.checkPageExists(taskId, false);
-      await this.notionService.checkParent(taskId, this.dbId);
+      await this.notionService.checkParent(taskId, this.taskService.DB_ID);
       return await this.taskService.removeTask(taskId);
     } catch (error) {
       throw new NotFoundException(error.message);

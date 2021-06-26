@@ -1,9 +1,4 @@
-interface Id {
-  id: string;
-}
-interface Relation {
-  relation: Id[];
-}
+import Relation from '../utils/Relation';
 
 export interface Task {
   id?: string;
@@ -13,4 +8,5 @@ export interface Task {
   points?: number;
   createdAt?: Date;
   goals?: Relation;
+  removed?: boolean;
 }
