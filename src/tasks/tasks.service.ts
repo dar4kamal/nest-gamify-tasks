@@ -18,13 +18,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Task } from './tasks.model';
-import { validate } from '../validation/tasks';
 import parseErrors from 'src/utils/parseErrors';
 import { NotionService } from 'src/notion/notion.service';
+import { ValidationService } from 'src/validation/validation.service';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly notionService: NotionService) {}
+  constructor(
+    private readonly notionService: NotionService,
+    private readonly validationService: ValidationService,
+  ) {
+    this.validationService = new ValidationService();
+    this.validationService.setEngine('Task');
+  }
   private checkUserId(userId: string) {
     if (!userId)
       throw new UnauthorizedException({
@@ -81,7 +87,10 @@ export class TasksService {
   }
 
   async addTask(name: string, points: number, userId: string, goalId: string) {
-    const { error } = validate({ name, points, userId, goalId }, 'new');
+    const { error } = this.validationService.engine.validate(
+      { name, points, userId, goalId },
+      'new',
+    );
     if (error) throw new BadRequestException({ errors: parseErrors(error) });
     const props = {
       name: addTitle(name),
@@ -121,7 +130,7 @@ export class TasksService {
     goalId: string,
     done: boolean,
   ) {
-    const { error } = validate(
+    const { error } = this.validationService.engine.validate(
       { name, points, userId, goalId, done },
       'update',
     );
