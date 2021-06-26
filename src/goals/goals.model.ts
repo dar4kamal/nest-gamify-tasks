@@ -1,13 +1,12 @@
-import { Task } from 'src/tasks/tasks.model';
+import Relation from '../utils/Relation';
 
-export class Goal {
-  constructor(
-    public id: string,
-    public name: string,
-    public done: boolean,
-    public createdAt: Date,
-    public doneAt: Date,
-    public percent: number,
-    public tasks: Task[],
-  ) {}
+export interface Goal {
+  id?: string;
+  doneAt?: Date;
+  name?: string;
+  done?: boolean;
+  percent?: number;
+  createdAt?: Date;
+  tasks?: Relation;
+  removed?: boolean;
 }
