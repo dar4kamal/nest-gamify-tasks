@@ -1,0 +1,15 @@
+---
+application:
+  name: "nest-gamify-tasks"
+  project: "q-test"
+  organization: "QoveryCommunity"
+databases:
+- type: "MONGODB"
+  name: "test"
+  version: "4.4"
+routers:
+- name: "main-nest-gamify-tasks"
+  routes:
+  - application_name: "nest-gamify-tasks"
+    paths:
+    - "/*"
